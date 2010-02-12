@@ -4,13 +4,9 @@
 
 $SCRIPTS/install ccache toolchain
 $SCRIPTS/install binutils
-$SCRIPTS/install $TARGET_LIBC toolchain
 $SCRIPTS/unpack gcc
 
 setup_toolchain host
-
-TLS_CONFIG="--enable-tls"
-[ $TARGET_LIBC = "uClibc" ] && TLS_CONFIG="--disable-tls"
 
 cd $BUILD/gcc*
 mkdir -p objdir-$1
@@ -24,16 +20,15 @@ cd objdir-$1
              --with-gmp=$ROOT/$TOOLCHAIN \
              --with-mpfr=$ROOT/$TOOLCHAIN \
              --enable-languages=${TOOLCHAIN_LANGUAGES} \
+             --disable-win32-registry \
              --disable-__cxa_atexit \
              --disable-libmudflap \
              --disable-libssp \
              --disable-multilib \
+             --disable-threads \
              --enable-shared \
              --enable-c99 \
              --enable-long-long \
-             --enable-threads=posix \
-             $TLS_CONFIG \
              --disable-nls
 make
 setup_toolchain target
-strip_libs .
