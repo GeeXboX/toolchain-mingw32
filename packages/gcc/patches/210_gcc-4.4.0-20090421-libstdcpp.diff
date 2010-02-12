@@ -1,0 +1,88 @@
+Aaron W. LaFramboise
+2009-04-21
+
+
+Index: libstdc++-v3/src/Makefile.am
+===================================================================
+--- a/libstdc++-v3/src/Makefile.am	(revision 146010)
++++ b/libstdc++-v3/src/Makefile.am	(working copy)
+@@ -348,7 +348,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ # directory to configure libstdc++-v3 to use gcc as the C++
+ # compilation driver.
+ CXXLINK = $(LIBTOOL) --tag CXX --mode=link $(CXX) \
+-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
++	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) \
++	  -no-undefined -o $@
+ 
+ 
+ # Added bits to build debug library.
+Index: libstdc++-v3/libsupc++/Makefile.am
+===================================================================
+--- a/libstdc++-v3/libsupc++/Makefile.am	(revision 146010)
++++ b/libstdc++-v3/libsupc++/Makefile.am	(working copy)
+@@ -164,7 +164,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ # compilation driver.
+ CXXLINK = $(LIBTOOL) --tag CXX --tag disable-shared \
+ 	  --mode=link $(CXX) \
+-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
++	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) \
++	  -no-undefined -o $@
+ 
+ # We have to have rules modified from the default to counteract SUN make
+ # prepending each of $(glibcxxinstall_HEADERS) with VPATH below.
+Index: libstdc++-v3/Makefile.in
+===================================================================
+--- a/libstdc++-v3/Makefile.in	(revision 146010)
++++ b/libstdc++-v3/Makefile.in	(working copy)
+@@ -36,6 +36,7 @@ POST_UNINSTALL = :
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
++LIBOBJDIR =
+ DIST_COMMON = README $(am__configure_deps) $(srcdir)/../config.guess \
+ 	$(srcdir)/../config.sub $(srcdir)/../install-sh \
+ 	$(srcdir)/../ltmain.sh $(srcdir)/../missing \
+Index: libstdc++-v3/src/Makefile.in
+===================================================================
+--- a/libstdc++-v3/src/Makefile.in	(revision 146010)
++++ b/libstdc++-v3/src/Makefile.in	(working copy)
+@@ -37,6 +37,7 @@ POST_UNINSTALL = :
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
++LIBOBJDIR =
+ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+ 	$(top_srcdir)/fragment.am
+ subdir = src
+@@ -506,7 +507,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ # directory to configure libstdc++-v3 to use gcc as the C++
+ # compilation driver.
+ CXXLINK = $(LIBTOOL) --tag CXX --mode=link $(CXX) \
+-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
++	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) \
++	  -no-undefined -o $@
+ 
+ debugdir = debug
+ all: all-am
+Index: libstdc++-v3/libsupc++/Makefile.in
+===================================================================
+--- a/libstdc++-v3/libsupc++/Makefile.in	(revision 146010)
++++ b/libstdc++-v3/libsupc++/Makefile.in	(working copy)
+@@ -38,6 +38,7 @@ POST_UNINSTALL = :
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
++LIBOBJDIR =
+ DIST_COMMON = $(glibcxxinstall_HEADERS) $(srcdir)/Makefile.am \
+ 	$(srcdir)/Makefile.in $(top_srcdir)/fragment.am
+ subdir = libsupc++
+@@ -488,7 +489,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ # compilation driver.
+ CXXLINK = $(LIBTOOL) --tag CXX --tag disable-shared \
+ 	  --mode=link $(CXX) \
+-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
++	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) \
++	  -no-undefined -o $@
+ 
+ all: all-am
+ 

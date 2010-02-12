@@ -1,0 +1,38 @@
+Aaron W. LaFramboise  20090418
+
+libjava's classpath will not build without this file existing.  In FSF GCC, it has only
+been implemented for POSIX platforms, which causes a build failure on all other platforms.
+This patch adds a dummy version to allow the build to complete.  In the long run, someone
+should implement this carefully and submit it for review upstream.
+
+
+
+Index: libjava/gnu/java/security/jce/prng/natVMSecureRandomWin32.cc
+===================================================================
+--- a/libjava/gnu/java/security/jce/prng/natVMSecureRandomWin32.cc	(revision 0)
++++ b/libjava/gnu/java/security/jce/prng/natVMSecureRandomWin32.cc	(revision 0)
+@@ -0,0 +1,24 @@
++// natVMSecureRandomWin32.cc - Native part of VMSecureRandom class for Win32.
++
++/* Copyright (C) 2009 Free Software Foundation
++
++   This file is part of libgcj.
++
++This software is copyrighted work licensed under the terms of the
++Libgcj License.  Please consult the file "LIBGCJ_LICENSE" for
++details.  */
++
++#include <config.h>
++
++#include <gcj/cni.h>
++#include <java/lang/InternalError.h>
++#include <gnu/java/security/jce/prng/VMSecureRandom.h>
++
++jint
++gnu::java::security::jce::prng::VMSecureRandom::natGenerateSeed(jbyteArray byte_array, jint offset, jint length)
++{
++  // TODO FIXME: Unimplemented.
++  throw new ::java::lang::InternalError 
++    (JvNewStringLatin1 ("Secure Random not implemented on Win32."));
++  return 0;
++}

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build libiconv
+
+cd $BUILD/$1*
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --disable-shared \
+            --enable-static \
+            --without-python \
+            --without-zlib \
+
+# Only for static linking
+sed -i 's,\(Libs:.*\),\1 -lwsock32,' libxml-2.0.pc
+
+make
+make install

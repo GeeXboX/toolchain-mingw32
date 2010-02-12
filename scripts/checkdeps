@@ -1,0 +1,96 @@
+#!/bin/sh
+
+. config/options
+
+deps=
+deps_pkg=
+files=
+files_pkg=
+
+case $1 in
+  get)
+    deps="wget"
+    deps_pkg="wget"
+    ;;
+  build)
+    deps="gcc g++ sed patch touch nasm tar bzip2 gzip perl flex bison cp gawk mkfontscale cpio makedepend makeinfo msgfmt libtool cmp yacc"
+    deps_pkg="gcc g++ sed patch fileutils nasm tar bzip2 gzip perl flex bison coreutils gawk cpio makedepend gettext libtool diff"
+    files="/usr/include/stdio.h /usr/include/readline/readline.h /usr/include/zlib.h /usr/include/ncurses.h /usr/include/freetype2/freetype/freetype.h /usr/include/expat.h"
+    files_pkg="libc6-dev libreadline5-dev zlib1g-dev libncurses5-dev libfreetype6-dev libexpat1-dev"
+    ;;
+esac
+
+getarg() {
+  eval echo \${$(($1+2))}
+}
+
+i=0
+while dep=`getarg $i $deps` && [ -n "$dep" ]; do
+  [ -z "`which $dep 2>/dev/null`" ] && need="$need $dep" && need_pkg="$need_pkg `getarg $i $deps_pkg`"
+  i=$(($i+1))
+done
+
+i=0
+while file=`getarg $i $files` && [ -n "$file" ]; do
+  [ ! -f $file ] && need="$need $file" && need_pkg="$need_pkg `getarg $i $files_pkg`"
+  i=$(($i+1))
+done
+
+if [ -n "$need" ]; then
+  echo "**** Your system lacks the following tools needed to $1 GeeXboX ****"
+  echo $need
+
+  [ -f /etc/lsb-release ] && . /etc/lsb-release
+
+  if [ -n "`which aptitude 2>/dev/null`" ]; then
+    DISTRO="a Debian" 
+    [ "$DISTRIB_ID" = "Ubuntu" ] && DISTRO="an Ubuntu"
+    echo "**** You seem to use $DISTRO system ****"
+    read -p "would you like to sudo aptitude install the needed tools ? (y/n) " ans
+    [ "$ans" = "y" ] && sudo aptitude install $need_pkg
+  elif [ -f /etc/mandrake-release -a -n "`which urpmi 2>/dev/null`" ]; then
+    echo "**** You seem to use a mandrake system ****"
+    if [ "$UID" -ne 0 ]; then
+      echo "**** I could install those packages but you need to be root for this ****"
+      exit 1
+    else
+      read -p "would you like to urpmi the needed tools ? (y/n) " ans
+      [ "$ans" = "y" ] && urpmi $need_pkg
+    fi
+  elif [ -f /etc/gentoo-release -a -n "`which emerge 2>/dev/null`" ]; then
+    echo "**** You seem to use a gentoo system ****"
+    if [ "$UID" -ne 0 ]; then
+      echo "**** I could install those packages but you need to be root for this ****"
+      exit 1
+    else
+      read -p "would you like to emerge the needed tools ? (y/n) " ans
+      [ "$ans" = "y" ] && emerge -D $need_pkg
+    fi
+  else
+    echo "********"
+    exit 1
+  fi
+fi
+
+
+need=""
+need_pkg=""
+
+i=0
+while dep=`getarg $i $deps` && [ -n "$dep" ]; do
+  [ -z "`which $dep 2>/dev/null`" ] && need="$need $dep" && need_pkg="$need_pkg `getarg $i $deps_pkg`"
+  i=$(($i+1))
+done
+
+i=0
+while file=`getarg $i $files` && [ -n "$file" ]; do
+  [ ! -f $file ] && need="$need $file" && need_pkg="$need_pkg `getarg $i $files_pkg`"
+  i=$(($i+1))
+done
+
+if [ -n "$need" ]; then
+  echo "**** The following packages were not installed correctly ****"
+  echo $need_pkg
+  echo "********"
+  exit 1
+fi

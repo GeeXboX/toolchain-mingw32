@@ -1,0 +1,39 @@
+Index: libgfortran/Makefile.am
+===================================================================
+--- a/libgfortran/Makefile.am	(revision 145042)
++++ b/libgfortran/Makefile.am	(working copy)
+@@ -17,7 +17,9 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ 
+ toolexeclib_LTLIBRARIES = libgfortran.la
+ libgfortran_la_LINK = $(LINK)
+-libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) $(version_arg)
++libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
++			 $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) \
++			 $(version_arg) -no-undefined
+ 
+ myexeclib_LTLIBRARIES = libgfortranbegin.la
+ myexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
+Index: libgfortran/Makefile.in
+===================================================================
+--- a/libgfortran/Makefile.in	(revision 146010)
++++ b/libgfortran/Makefile.in	(working copy)
+@@ -37,6 +37,7 @@ POST_UNINSTALL = :
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
++LIBOBJDIR =
+ 
+ # dummy sources for libtool
+ @onestep_TRUE@am__append_1 = libgfortran_c.c libgfortran_f.f90
+@@ -953,7 +954,10 @@ gcc_version := $(shell cat $(top_srcdir)
+ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
+ toolexeclib_LTLIBRARIES = libgfortran.la
+ libgfortran_la_LINK = $(LINK)
+-libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) $(version_arg)
++libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
++			 $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) \
++			 $(version_arg) -no-undefined
++
+ myexeclib_LTLIBRARIES = libgfortranbegin.la
+ myexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
+ libgfortranbegin_la_SOURCES = fmain.c

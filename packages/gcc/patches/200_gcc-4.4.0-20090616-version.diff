@@ -1,0 +1,17 @@
+diff -Naur gcc/REVISION gcc-4.3.0-mingw/gcc/REVISION
+--- a/gcc/REVISION	1969-12-31 18:00:00.000000000 -0600
++++ b/gcc/REVISION	2008-05-02 17:46:12.984375000 -0500
+@@ -0,0 +1 @@
++mingw-20090616
+Index: gcc/config/i386/cygming.h
+===================================================================
+--- a/gcc/config/i386/cygming.h	(revision 146010)
++++ b/gcc/config/i386/cygming.h	(working copy)
+@@ -78,6 +78,7 @@ along with GCC; see the file COPYING3.  
+ 	builtin_define ("__stdcall=__attribute__((__stdcall__))");	\
+ 	builtin_define ("__fastcall=__attribute__((__fastcall__))");	\
+ 	builtin_define ("__cdecl=__attribute__((__cdecl__))");		\
++	builtin_define ("__MINGW_GCC=20090616");			\
+ 	if (!flag_iso)							\
+ 	  {								\
+ 	    builtin_define ("_stdcall=__attribute__((__stdcall__))");	\

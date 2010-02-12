@@ -1,0 +1,29 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install ccache
+
+setup_toolchain host
+
+CFG_CXX="--disable-cxx"
+[ "$TOOLCHAIN_CXX" = yes ] && CFG_CXX="--enable-cxx"
+
+# workaround gcc 4.3.2 bug on x86_64 hosts
+# http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=524472
+export CFLAGS="$CFLAGS -fno-strict-aliasing"
+
+cd $BUILD/$1*
+mkdir -p objdir
+cd objdir
+../configure --host=$HOST_NAME \
+             --build=$HOST_NAME \
+             --target=$TARGET_NAME \
+             --prefix=$ROOT/$TOOLCHAIN \
+             --disable-shared \
+             --enable-static \
+             --enable-mpbsd \
+             $CFG_CXX \
+
+make
+make check

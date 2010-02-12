@@ -1,0 +1,89 @@
+Aaron W. LaFramboise  20090418
+
+libtool has recently acquired some logic that assumes a mingw32 build environment
+will be MSYS, then proceeds to do something that breaks my build, because my cmd doesn't
+do what libtool expects, for reasons that are not clear.  This patch disables this logic.
+In the long run, libtool needs to be fixed.
+
+
+
+Index: ltmain.sh
+===================================================================
+--- a/ltmain.sh	(revision 146010)
++++ b/ltmain.sh	(working copy)
+@@ -2983,7 +2983,7 @@ func_to_host_path ()
+       *mingw* )
+         lt_sed_naive_backslashify='s|\\\\*|\\|g;s|/|\\|g;s|\\|\\\\|g'
+         case $build in
+-          *mingw* ) # actually, msys
++          *msys* ) # actually, msys
+             # awkward: cmd appends spaces to result
+             lt_sed_strip_trailing_spaces="s/[ ]*\$//"
+             func_to_host_path_tmp1=`( cmd //c echo "$1" |\
+@@ -2991,7 +2991,7 @@ func_to_host_path ()
+             func_to_host_path_result=`echo "$func_to_host_path_tmp1" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+             ;;
+-          *cygwin* )
++          *cygwin* | *mingw* )
+             func_to_host_path_tmp1=`cygpath -w "$1"`
+             func_to_host_path_result=`echo "$func_to_host_path_tmp1" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+@@ -3062,7 +3062,7 @@ func_to_host_pathlist ()
+         func_to_host_pathlist_tmp1=`echo "$func_to_host_pathlist_tmp2" |\
+           $SED -e 's|^:*||' -e 's|:*$||'`
+         case $build in
+-          *mingw* ) # Actually, msys.
++          *msys* ) # Actually, msys.
+             # Awkward: cmd appends spaces to result.
+             lt_sed_strip_trailing_spaces="s/[ ]*\$//"
+             func_to_host_pathlist_tmp2=`( cmd //c echo "$func_to_host_pathlist_tmp1" |\
+@@ -3070,7 +3070,7 @@ func_to_host_pathlist ()
+             func_to_host_pathlist_result=`echo "$func_to_host_pathlist_tmp2" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+             ;;
+-          *cygwin* )
++          *cygwin* | *mingw* )
+             func_to_host_pathlist_tmp2=`cygpath -w -p "$func_to_host_pathlist_tmp1"`
+             func_to_host_pathlist_result=`echo "$func_to_host_pathlist_tmp2" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+Index: libjava/classpath/ltmain.sh
+===================================================================
+--- a/libjava/classpath/ltmain.sh	(revision 146010)
++++ b/libjava/classpath/ltmain.sh	(working copy)
+@@ -2983,7 +2983,7 @@ func_to_host_path ()
+       *mingw* )
+         lt_sed_naive_backslashify='s|\\\\*|\\|g;s|/|\\|g;s|\\|\\\\|g'
+         case $build in
+-          *mingw* ) # actually, msys
++          *msys* ) # actually, msys
+             # awkward: cmd appends spaces to result
+             lt_sed_strip_trailing_spaces="s/[ ]*\$//"
+             func_to_host_path_tmp1=`( cmd //c echo "$1" |\
+@@ -2991,7 +2991,7 @@ func_to_host_path ()
+             func_to_host_path_result=`echo "$func_to_host_path_tmp1" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+             ;;
+-          *cygwin* )
++          *cygwin* | *mingw* )
+             func_to_host_path_tmp1=`cygpath -w "$1"`
+             func_to_host_path_result=`echo "$func_to_host_path_tmp1" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+@@ -3062,7 +3062,7 @@ func_to_host_pathlist ()
+         func_to_host_pathlist_tmp1=`echo "$func_to_host_pathlist_tmp2" |\
+           $SED -e 's|^:*||' -e 's|:*$||'`
+         case $build in
+-          *mingw* ) # Actually, msys.
++          *msys* ) # Actually, msys.
+             # Awkward: cmd appends spaces to result.
+             lt_sed_strip_trailing_spaces="s/[ ]*\$//"
+             func_to_host_pathlist_tmp2=`( cmd //c echo "$func_to_host_pathlist_tmp1" |\
+@@ -3070,7 +3070,7 @@ func_to_host_pathlist ()
+             func_to_host_pathlist_result=`echo "$func_to_host_pathlist_tmp2" |\
+               $SED -e "$lt_sed_naive_backslashify"`
+             ;;
+-          *cygwin* )
++          *cygwin* | *mingw* )
+             func_to_host_pathlist_tmp2=`cygpath -w -p "$func_to_host_pathlist_tmp1"`
+             func_to_host_pathlist_result=`echo "$func_to_host_pathlist_tmp2" |\
+               $SED -e "$lt_sed_naive_backslashify"`

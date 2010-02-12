@@ -1,0 +1,23 @@
+Recent versions of autoconf are incompatible with Cygwin bash igncr, causing
+mpfr's configure to fail when igncr is used.  This patch works around the
+problem to allow configure to succeed.  This issue is currently being worked
+on upstream by the autoconf maintainers, but it may be quite a while before
+the fix propagates into an MPFR release.
+
+By Aaron W. LaFramboise 2009-03-22
+
+
+
+diff -Naur mpfr-2.4.1/configure mpfr-2.4.1+igncr/configure
+--- mpfr-2.4.1/configure	2009-02-25 10:18:05.000000000 -0600
++++ mpfr-2.4.1+igncr/configure	2009-03-22 03:41:27.798173000 -0500
+@@ -26400,6 +26400,9 @@
+ 
+ 
+ ac_cr=''
++if test "x$ac_cr" = x; then
++  eval ac_cr=\$\'\\r\'
++fi
+ ac_cs_awk_cr=`$AWK 'BEGIN { print "a\rb" }' </dev/null 2>/dev/null`
+ if test "$ac_cs_awk_cr" = "a${ac_cr}b"; then
+   ac_cs_awk_cr='\\r'

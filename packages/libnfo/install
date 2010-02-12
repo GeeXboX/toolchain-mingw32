@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. config/options
+
+mkdir -p $INSTALL/bin
+cp -P $BUILD/$1*/libnfo-reader $INSTALL/bin/libnfo-reader.exe
+
+if [ "$STATIC_LIBS" = no ]; then
+  cp -P $BUILD/$1*/src/libnfo*.dll $INSTALL/bin
+fi

@@ -1,0 +1,18 @@
+Aaron W. LaFramboise
+
+
+
+Index: libobjc/Makefile.in
+===================================================================
+--- a/libobjc/Makefile.in	(revision 139186)
++++ b/libobjc/Makefile.in	(working copy)
+@@ -278,7 +278,8 @@ install-html:
+ install-pdf:
+ install-info:
+ 
+-LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
++LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
++        -no-undefined
+ 
+ libobjc$(libsuffix).la: $(OBJS)
+ 	$(LIBTOOL_LINK) $(CC) -o $@ $(OBJS) \

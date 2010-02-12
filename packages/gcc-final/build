@@ -1,0 +1,39 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install ccache toolchain
+$SCRIPTS/install binutils
+$SCRIPTS/install $TARGET_LIBC toolchain
+$SCRIPTS/unpack gcc
+
+setup_toolchain host
+
+TLS_CONFIG="--enable-tls"
+[ $TARGET_LIBC = "uClibc" ] && TLS_CONFIG="--disable-tls"
+
+cd $BUILD/gcc*
+mkdir -p objdir-$1
+cd objdir-$1
+../configure --host=$HOST_NAME \
+             --build=$HOST_NAME \
+             --target=$TARGET_NAME \
+             --prefix=$ROOT/$TOOLCHAIN \
+             --with-build-sysroot=$SYSROOT_PREFIX \
+             --with-local-prefix=${LIB_PREFIX#$SYSROOT_PREFIX} \
+             --with-gmp=$ROOT/$TOOLCHAIN \
+             --with-mpfr=$ROOT/$TOOLCHAIN \
+             --enable-languages=${TOOLCHAIN_LANGUAGES} \
+             --disable-__cxa_atexit \
+             --disable-libmudflap \
+             --disable-libssp \
+             --disable-multilib \
+             --enable-shared \
+             --enable-c99 \
+             --enable-long-long \
+             --enable-threads=posix \
+             $TLS_CONFIG \
+             --disable-nls
+make
+setup_toolchain target
+strip_libs .

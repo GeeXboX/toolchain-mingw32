@@ -1,0 +1,34 @@
+Aaron W. LaFramboise  20090421
+
+
+
+
+jc1.exe, which causes a stack overflow when building
+libjava.
+
+
+
+
+
+Index: config/mh-cygwin
+===================================================================
+--- a/config/mh-cygwin	(revision 146515)
++++ b/config/mh-cygwin	(working copy)
+@@ -2,6 +2,7 @@ EXTRA_TARGET_HOST_ALL_MODULES=maybe-all-
+ EXTRA_TARGET_HOST_INSTALL_MODULES=maybe-install-libtermcap
+ 
+ # Increase stack limit to same as Linux default.
++BOOT_LDFLAGS += -Wl,--stack,8388608
+ LDFLAGS += -Wl,--stack,8388608
+ 
+ all-gdb: maybe-all-libtermcap
+Index: config/mh-mingw
+===================================================================
+--- a/config/mh-mingw	(revision 146515)
++++ b/config/mh-mingw	(working copy)
+@@ -3,4 +3,5 @@
+ BOOT_CFLAGS += -D__USE_MINGW_ACCESS -Wno-pedantic-ms-format
+ CFLAGS += -D__USE_MINGW_ACCESS
+ # Increase stack limit to same as Linux default.
++BOOT_LDFLAGS += -Wl,--stack,8388608
+ LDFLAGS += -Wl,--stack,8388608

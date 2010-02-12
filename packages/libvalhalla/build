@@ -1,0 +1,49 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build sqlite
+$SCRIPTS/build ffmpeg
+$SCRIPTS/build libexif
+$SCRIPTS/build libxml2
+$SCRIPTS/build libgcrypt
+$SCRIPTS/build libnfo
+$SCRIPTS/build curl
+$SCRIPTS/build pthreads-w32
+
+if [ "$DEBUG" = yes ]; then
+  DEBUG_CONFIG="--enable-debug=3"
+else
+  DEBUG_CONFIG="--disable-debug"
+fi
+
+cd $BUILD/$1*
+CPPFLAGS="$CPPFLAGS -I$SYSROOT_PREFIX/usr/include" \
+./configure --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --cross-compile \
+            --disable-optimize \
+            --disable-doc \
+            --disable-logcolor \
+            --disable-grabber-dummy \
+            --enable-grabber-allocine \
+            --enable-grabber-amazon \
+            --enable-grabber-exif \
+            --enable-grabber-ffmpeg \
+            --enable-grabber-imdb \
+            --enable-grabber-lastfm \
+            --enable-grabber-local \
+            --enable-grabber-chartlyrics \
+            --enable-grabber-lyricwiki \
+            --enable-grabber-nfo \
+            --enable-grabber-tvdb \
+            --enable-grabber-tmdb \
+            --enable-grabber-tvrage \
+            $DEBUG_CONFIG \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs src
+make -C src install
+cp -f libvalhalla.pc $LIB_PREFIX/lib/pkgconfig/

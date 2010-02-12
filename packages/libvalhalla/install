@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install sqlite
+$SCRIPTS/install ffmpeg
+$SCRIPTS/install libexif
+$SCRIPTS/install libgcrypt
+$SCRIPTS/install libnfo
+$SCRIPTS/install pthreads-w32
+
+mkdir -p $INSTALL/bin
+cp $BUILD/$1*/libvalhalla-test $INSTALL/bin/libvalhalla-test.exe
+
+if [ "$STATIC_LIBS" = no ]; then
+  cp -P $BUILD/$1*/src/libvalhalla*.dll $INSTALL/bin
+fi

@@ -1,0 +1,59 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+
+if [ "$DEBUG" = yes ]; then
+  DEBUG_CONFIG="--enable-debug --disable-stripping"
+else
+  DEBUG_CONFIG="--disable-debug --enable-stripping"
+fi
+
+if [ "$OPTIMIZATIONS" = size ]; then
+  OPTIM_CONFIG="--enable-small"
+else
+  OPTIM_CONFIG="--disable-small"
+fi
+
+TARGET_OS=mingw32
+
+cd $BUILD/$1*
+./configure --enable-cross-compile \
+            --cross-prefix=$TARGET_PREFIX \
+            --arch=$TARGET_ARCH \
+            --target-os=$TARGET_OS \
+            --prefix=$LIB_PREFIX \
+            --extra-cflags="$CFLAGS" \
+            --cpu=$TARGET_CPU \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --enable-memalign-hack \
+            --enable-w32threads \
+            --enable-gpl \
+            --disable-ffserver \
+            --disable-ffmpeg \
+            --disable-postproc \
+            --disable-avfilter \
+            --disable-avfilter-lavf \
+            --disable-x11grab \
+            $OPTIM_CONFIG \
+            --enable-encoders \
+            --enable-decoders \
+            --enable-muxers \
+            --enable-demuxers \
+            --enable-parsers \
+            --enable-bsfs \
+            --enable-protocols \
+            --disable-indevs \
+            --disable-outdevs \
+            --disable-devices \
+            --enable-filters \
+            --disable-zlib \
+            --disable-libfaad \
+            --disable-ffplay \
+            $DEBUG_CONFIG \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs .
+make install

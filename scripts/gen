@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/checkdeps build
+
+rm -rf $BUILD/gen
+mkdir -p $BUILD/gen
+export INSTALL=$BUILD/gen
+
+$SCRIPTS/install enna

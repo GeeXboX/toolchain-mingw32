@@ -1,0 +1,662 @@
+Index: gcc/targhooks.c
+===================================================================
+--- a/gcc/targhooks.c	(revision 146515)
++++ b/gcc/targhooks.c	(working copy)
+@@ -371,6 +371,22 @@ default_invalid_within_doloop (const_rtx
+   return NULL;
+ }
+ 
++/*  Targets can override this to add some special instrumentation to
++    call sites. */
++
++void 
++default_instrument_call_site (rtx site ATTRIBUTE_UNUSED)
++{
++}
++
++/*  By default, do not instrument call sites. */
++
++bool 
++default_instrument_call_sites_p (void)
++{
++  return false;
++}
++
+ /* Mapping of builtin functions to vectorized variants.  */
+ 
+ tree
+Index: gcc/targhooks.h
+===================================================================
+--- a/gcc/targhooks.h	(revision 146515)
++++ b/gcc/targhooks.h	(working copy)
+@@ -62,6 +62,9 @@ extern bool default_fixed_point_supporte
+ 
+ extern const char * default_invalid_within_doloop (const_rtx);
+ 
++extern void default_instrument_call_site (rtx);
++extern bool default_instrument_call_sites_p (void);
++
+ extern tree default_builtin_vectorized_function
+   (enum built_in_function, tree, tree);
+ 
+Index: gcc/target.h
+===================================================================
+--- a/gcc/target.h	(revision 146515)
++++ b/gcc/target.h	(working copy)
+@@ -812,6 +812,12 @@ struct gcc_target
+      checks to  handle_dll_attribute ().  */
+   bool (* valid_dllimport_attribute_p) (const_tree decl);
+ 
++  /* Add some target-specific instrumentation to the call site.  */
++  void (* instrument_call_site) (rtx site);
++
++  /* Add some target-specific instrumentation to the call site.  */
++  bool (* instrument_call_sites_p) (void);
++
+   /* Functions relating to calls - argument passing, returns, etc.  */
+   struct calls {
+     bool (*promote_function_args) (const_tree fntype);
+Index: gcc/except.c
+===================================================================
+--- a/gcc/except.c	(revision 146515)
++++ b/gcc/except.c	(working copy)
+@@ -2117,11 +2117,34 @@ sjlj_build_landing_pads (void)
+   free (lp_info);
+ }
+ 
++/* For each call site, call the backend to perform possible target-specific
++   call site instrumentation.  */
++
++static void
++instrument_call_sites(void)
++{
++  rtx insn;
++
++  /* Only search for call sites to instrument if requested by the target. */
++  if (!targetm.instrument_call_sites_p())
++    return;
++
++  /* Pass each call site to the target back-end for possible
++     instrumentation. */
++  for (insn = get_insns (); insn ; insn = NEXT_INSN (insn))
++    if (CALL_P (insn))
++      targetm.instrument_call_site (insn);
++  cleanup_cfg(CLEANUP_NO_INSN_DEL);
++}
++
+ void
+ finish_eh_generation (void)
+ {
+   basic_block bb;
+ 
++  /* Perform target-specific instrumentation of call sites. */
++  instrument_call_sites();
++
+   /* Nothing to do if no regions created.  */
+   if (cfun->eh->region_tree == NULL)
+     return;
+Index: gcc/target-def.h
+===================================================================
+--- a/gcc/target-def.h	(revision 146515)
++++ b/gcc/target-def.h	(working copy)
+@@ -177,6 +177,14 @@
+ #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P hook_bool_const_tree_true
+ #endif
+ 
++#ifndef TARGET_INSTRUMENT_CALL_SITE
++#define TARGET_INSTRUMENT_CALL_SITE default_instrument_call_site
++#endif
++
++#ifndef TARGET_INSTRUMENT_CALL_SITES_P
++#define TARGET_INSTRUMENT_CALL_SITES_P default_instrument_call_sites_p
++#endif
++
+ #ifndef TARGET_HAVE_TLS
+ #define TARGET_HAVE_TLS false
+ #endif
+@@ -909,6 +917,8 @@
+   TARGET_STACK_PROTECT_FAIL,			\
+   TARGET_INVALID_WITHIN_DOLOOP,			\
+   TARGET_VALID_DLLIMPORT_ATTRIBUTE_P,		\
++  TARGET_INSTRUMENT_CALL_SITE,			\
++  TARGET_INSTRUMENT_CALL_SITES_P,			\
+   TARGET_CALLS,					\
+   TARGET_INVALID_CONVERSION,			\
+   TARGET_INVALID_UNARY_OP,			\
+Index: gcc/config/i386/cygming.h
+===================================================================
+--- a/gcc/config/i386/cygming.h	(revision 146515)
++++ b/gcc/config/i386/cygming.h	(working copy)
+@@ -385,9 +385,20 @@ do {						\
+ #undef TARGET_USE_LOCAL_THUNK_ALIAS_P
+ #define TARGET_USE_LOCAL_THUNK_ALIAS_P(DECL) (!DECL_ONE_ONLY (DECL))
+ 
+-#define SUBTARGET_ATTRIBUTE_TABLE \
+-  { "selectany", 0, 0, true, false, false, ix86_handle_selectany_attribute }
+   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
++#define SUBTARGET_ATTRIBUTE_TABLE \
++  { "selectany", 0, 0, true, false, false, ix86_handle_selectany_attribute } \
++  SUBTARGET_ATTRIBUTE_TABLE_EXCEPT_EXTRA
++
++#if defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT
++#define SUBTARGET_ATTRIBUTE_TABLE_EXCEPT_EXTRA ,\
++  /* foreign attribute says that the caller may be a foreign frame */        \
++  { "foreign",   0, 0, false, true,  true,  ix86_handle_foreign_attribute }, \
++  /* seh_aware attribute says that the callee understands SEH */             \
++  { "seh_aware", 0, 0, false, true,  true,  ix86_handle_seh_aware_attribute }
++#else
++#define SUBTARGET_ATTRIBUTE_TABLE_EXCEPT_EXTRA
++#endif
+ 
+ /*  mcount() does not need a counter variable.  */
+ #undef NO_PROFILE_COUNTERS
+@@ -397,6 +408,21 @@ do {						\
+ #define TARGET_CXX_ADJUST_CLASS_AT_DEFINITION i386_pe_adjust_class_at_definition
+ #define TARGET_MANGLE_DECL_ASSEMBLER_NAME i386_pe_mangle_decl_assembler_name
+ 
++#if defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT
++
++/* When using DWARF2 exceptions on i386, instrument some call sites
++   to allow throwing through SEH frames.  */
++#undef TARGET_INSTRUMENT_CALL_SITE
++#define TARGET_INSTRUMENT_CALL_SITE ix86_instrument_call_site
++#undef TARGET_INSTRUMENT_CALL_SITES_P
++#define TARGET_INSTRUMENT_CALL_SITES_P ix86_instrument_call_sites_p
++
++/* When using the above SEH implementation, initialize the handler libfunc. */
++void ix86_init_libfuncs (void);
++#define TARGET_INIT_LIBFUNCS ix86_init_libfuncs
++
++#endif
++
+ #undef TREE
+ 
+ #ifndef BUFSIZ
+Index: gcc/config/i386/i386.md
+===================================================================
+--- a/gcc/config/i386/i386.md	(revision 146515)
++++ b/gcc/config/i386/i386.md	(working copy)
+@@ -208,6 +208,9 @@
+    (UNSPEC_MASKSTORE		170)
+    (UNSPEC_CAST			171)
+    (UNSPEC_VTESTP		172)
++
++   ; For Microsoft Windows SEH support
++   (UNSPEC_SEHPTR		175)
+   ])
+ 
+ (define_constants
+@@ -22071,6 +22074,29 @@
+    (set_attr "prefix_extra" "1")
+    (set_attr "mode" "DI")])
+ 
++;; Load and store the SEH chain pointer from %fs:0 on Microsoft Windows.
++
++(define_insn "*load_sehptr_si"
++  [(set (match_operand:SI 0 "register_operand" "=r")
++	(unspec:SI [(const_int 0)] UNSPEC_SEHPTR))]
++  "!TARGET_64BIT"
++  "mov{l}\t{%%fs:0, %0|%0, DWORD PTR fs:0}"
++  [(set_attr "type" "imov")
++   (set_attr "modrm" "0")
++   (set_attr "length" "7")
++   (set_attr "memory" "load")
++   (set_attr "imm_disp" "false")])
++
++(define_insn "*store_sehptr_si"
++  [(unspec:SI [(match_operand:SI 0 "register_operand" "r")] UNSPEC_SEHPTR)]
++  "!TARGET_64BIT"
++  "mov{l}\t{%0, %%fs:0|DWORD PTR fs:0, %0}"
++  [(set_attr "type" "imov")
++   (set_attr "modrm" "0")
++   (set_attr "length" "7")
++   (set_attr "memory" "store")
++   (set_attr "imm_disp" "false")])
++
+ (include "mmx.md")
+ (include "sse.md")
+ (include "sync.md")
+Index: gcc/config/i386/w32-unwind.h
+===================================================================
+--- a/gcc/config/i386/w32-unwind.h	(revision 146515)
++++ b/gcc/config/i386/w32-unwind.h	(working copy)
+@@ -24,7 +24,6 @@ a copy of the GCC Runtime Library Except
+ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ <http://www.gnu.org/licenses/>.  */
+ 
+-
+ /* This file implements the md_fallback_frame_state_for routine for
+    Windows, triggered when the GCC table based unwinding process hits a
+    frame for which no unwind info has been registered. This typically
+@@ -39,12 +38,11 @@ see the files COPYING3 and COPYING.RUNTI
+    This is all assuming that the code to set the handler asked the kernel
+    to pass a pointer to such context information.
+ 
+-   There is three main parts.
++   There is four main parts.
+ 
+    1) The first thing to do is to check if we are in a signal context. If
+-      not we can just return as there is nothing to do. We are probably on
+-      some foreign code for which no unwind frame can be found. If this is
+-      a call from the Windows signal handler, then:
++      not we can fall back to item #4 below. If this is a call from the
++      Windows signal handler, then:
+ 
+    2) We must get the signal context information. 
+ 
+@@ -78,12 +76,132 @@ see the files COPYING3 and COPYING.RUNTI
+ 
+    3) When we have the signal context we just have to save some registers
+       and set the return address based on the program counter (Eip).
++      
++   4) If none of the above are successful, we check if there is a magic
++      SEH landing pad registration somewhere higher up on the stack.  These
++      landing pads are generated by the caller of a foreign function that
++      is known to be safe to unwind through using SEH, such as
++      DispatchMessage().
++      
++      If one of these records is found, we perform a SEH unwind through the
++      intervening foreign frames, and restore the registers from the extended
++      registration record.
+ 
+    Note that this implementation follows closely the same principles as the
+    GNU/Linux and OSF ones.  */
+ 
+ #define WIN32_MEAN_AND_LEAN
++#include <excpt.h>
+ #include <windows.h>
++
++#define END_OF_SEH_CHAIN (char *)0xffffffff
++
++void _declspec(cdecl) _global_unwind2(const EXCEPTION_REGISTRATION_RECORD*);
++
++/* This is an exception registration structure augmented with information
++   used to unwind through a SEH-aware foreign frame.  The size of this
++   structure is hardwired into ix86_instrument_call_site().  */
++struct gcc_exception_registration {
++  const EXCEPTION_REGISTRATION *prev;	/* The previous exception record */
++  FARPROC handler;			/* __gcc_except_handler */
++  void *cfa;				/* Callee CFA */
++  void *ebx;				/* Saved register */
++  void *esi;				/* Saved register */
++  void *edi;				/* Saved register */
++  void *ebp;				/* Saved register */
++};
++
++EXCEPTION_DISPOSITION __cdecl
++__gcc_except_handler (struct _EXCEPTION_RECORD *ExceptionRecord
++                        ATTRIBUTE_UNUSED,
++                      void *EstablisherFrame ATTRIBUTE_UNUSED,
++                      struct _CONTEXT *ContextRecord ATTRIBUTE_UNUSED,
++                      void *DispatcherContext ATTRIBUTE_UNUSED);
++
++EXCEPTION_DISPOSITION __cdecl
++__gcc_except_handler (struct _EXCEPTION_RECORD *ExceptionRecord
++                        ATTRIBUTE_UNUSED,
++                      void *EstablisherFrame ATTRIBUTE_UNUSED,
++                      struct _CONTEXT *ContextRecord ATTRIBUTE_UNUSED,
++                      void *DispatcherContext ATTRIBUTE_UNUSED)
++{
++  return ExceptionContinueSearch;
++}
++
++/* Get the Thread Information Block. */
++
++static NT_TIB *
++get_tib(void)
++{
++  NT_TIB *tib;
++  __asm__ ("mov{l}\t{%%fs:0x18, %0|%0, DWORD PTR fs:0x18}" : "=r"(tib));
++  return tib;
++}
++
++/* Return true if this is a GCC SEH handler function. */
++
++static int
++is_handler_p (FARPROC handler)
++{
++  unsigned char *ptr;
++
++  /* Compare pointers; this works when static linking. */
++  if (handler == (FARPROC) __gcc_except_handler)
++    return 1;
++
++  /* Check for jump table entry; this works for dynamic linking. */
++  ptr = (unsigned char *) handler;
++  if (*ptr == 0xff && *(ptr + 1) == 0x25
++    && **(FARPROC **) (ptr + 2) == (FARPROC) __gcc_except_handler)
++    return 1;
++
++  return 0;
++}
++
++/* Search for the magic GCC SEH handler registration in the SEH chain. */
++
++static const EXCEPTION_REGISTRATION *
++find_gcc_seh_handler (const EXCEPTION_REGISTRATION *starting_registration,
++                      const char *stack_top, const char *stack_bottom)
++{
++  const EXCEPTION_REGISTRATION *registration = starting_registration;
++
++  /* Follow the SEH chain searching for the magic registration. */
++  while ((const char *) registration != END_OF_SEH_CHAIN
++         && (const char *) registration >= stack_bottom
++         && (const char *) registration <= stack_top)
++    {
++      if (is_handler_p ((FARPROC) registration->handler))
++        return registration;
++      registration = registration->prev;
++    }
++    return 0;
++}
++
++/* Unwind any SEH registrations between the current frame and the target. */
++
++static _Unwind_Reason_Code
++seh_unwind (int version ATTRIBUTE_UNUSED,
++	    _Unwind_Action action ATTRIBUTE_UNUSED,
++	    _Unwind_Exception_Class exceptionClass ATTRIBUTE_UNUSED,
++	    struct _Unwind_Exception *exceptionObject ATTRIBUTE_UNUSED,
++	    struct _Unwind_Context *context ATTRIBUTE_UNUSED)
++{
++  NT_TIB *tib;
++  const EXCEPTION_REGISTRATION *registration;
++  if (action & _UA_CLEANUP_PHASE)
++  {
++    tib = get_tib();
++    registration
++      = find_gcc_seh_handler((EXCEPTION_REGISTRATION *) tib->ExceptionList,
++			   (char *) tib->StackBase,
++			   (char *) tib->StackLimit);
++    _global_unwind2(registration);
++    tib->ExceptionList = ((EXCEPTION_REGISTRATION *) tib->ExceptionList)->prev;
++  }
++  return _URC_CONTINUE_UNWIND;
++}
++
+ /* Patterns found experimentally to be on a Windows signal handler  */
+ 
+ /* In a standard exception filter  */
+@@ -208,5 +326,46 @@ i386_w32_fallback_frame_state (struct _U
+       return _URC_NO_REASON;
+     }
+   else
+-    return _URC_END_OF_STACK;
++    {
++
++      /* Check for a GCC SEH registration on the stack. */
++      const NT_TIB *tib = get_tib();
++      const EXCEPTION_REGISTRATION *registration
++	= find_gcc_seh_handler((EXCEPTION_REGISTRATION *) tib->ExceptionList,
++			       (char *) tib->StackBase,
++			       (char *) tib->StackLimit);
++      if (registration)
++	{
++
++	  /* Get the callee CFA from the registration record. */
++	  const struct gcc_exception_registration *gccreg
++	    = (const struct gcc_exception_registration *) registration;
++	  long new_cfa = (long) gccreg->cfa;
++	  fs->regs.cfa_how = CFA_REG_OFFSET;
++	  fs->regs.cfa_reg = __builtin_dwarf_sp_column();
++	  fs->regs.cfa_offset = new_cfa - (long) ctx_cfa_;
++
++	  /* Unwind through the foreign frames using SEH. */
++	  fs->personality = seh_unwind;
++
++	  /* Restore registers saved in the registration record. */
++	  fs->regs.reg[3].how = REG_SAVED_OFFSET;
++	  fs->regs.reg[3].loc.offset = (long) &gccreg->ebx - new_cfa;
++	  fs->regs.reg[6].how = REG_SAVED_OFFSET;
++	  fs->regs.reg[6].loc.offset = (long) &gccreg->esi - new_cfa;
++	  fs->regs.reg[7].how = REG_SAVED_OFFSET;
++	  fs->regs.reg[7].loc.offset = (long) &gccreg->edi - new_cfa;
++	  fs->regs.reg[5].how = REG_SAVED_OFFSET;
++	  fs->regs.reg[5].loc.offset = (long) &gccreg->ebp - new_cfa;
++
++	  /* Use the call return address at the CFA. */
++	  fs->regs.reg[8].how = REG_SAVED_OFFSET;
++	  fs->regs.reg[8].loc.offset = -4;
++	  fs->retaddr_column = 8;
++
++	  return _URC_NO_REASON;
++        }
++
++      return _URC_END_OF_STACK;
++    }
+ }
+Index: gcc/config/i386/winnt.c
+===================================================================
+--- a/gcc/config/i386/winnt.c	(revision 146515)
++++ b/gcc/config/i386/winnt.c	(working copy)
+@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  
+ #include "output.h"
+ #include "tree.h"
+ #include "flags.h"
++#include "expr.h"
+ #include "tm_p.h"
+ #include "toplev.h"
+ #include "hashtab.h"
+@@ -36,6 +37,9 @@ along with GCC; see the file COPYING3.  
+ #include "ggc.h"
+ #include "target.h"
+ 
++/* If seh_aware has been used, some call sites will need to be instrumented. */
++static bool need_instrument_call_sites = false;
++
+ /* i386/PE specific attribute support.
+ 
+    i386/PE has two new attributes:
+@@ -86,6 +90,56 @@ ix86_handle_selectany_attribute (tree *n
+   return NULL_TREE;
+ }
+ 
++#if defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT
++
++/* Handle "foreign" calling convention attributes
++   arguments as in struct attribute_spec.handler.  */
++
++tree
++ix86_handle_foreign_attribute (tree *node, tree name,
++				   tree args ATTRIBUTE_UNUSED,
++				   int flags ATTRIBUTE_UNUSED,
++				   bool *no_add_attrs)
++{
++  if (TREE_CODE (*node) != FUNCTION_TYPE
++      && TREE_CODE (*node) != FIELD_DECL
++      && TREE_CODE (*node) != TYPE_DECL)
++    {
++      warning (OPT_Wattributes,
++	       "%qs attribute only applies to regular functions",
++	       IDENTIFIER_POINTER (name));
++      *no_add_attrs = true;
++      return NULL_TREE;
++    }
++
++  return NULL_TREE;
++}
++
++/* Handle "seh_aware" calling convention attributes
++   arguments as in struct attribute_spec.handler.  */
++
++tree
++ix86_handle_seh_aware_attribute (tree *node, tree name,
++				   tree args ATTRIBUTE_UNUSED,
++				   int flags ATTRIBUTE_UNUSED,
++				   bool *no_add_attrs)
++{
++  if (TREE_CODE (*node) != FUNCTION_TYPE
++      && TREE_CODE (*node) != FIELD_DECL
++      && TREE_CODE (*node) != TYPE_DECL)
++    {
++      warning (OPT_Wattributes,
++	       "%qs attribute only applies to regular functions",
++	       IDENTIFIER_POINTER (name));
++      *no_add_attrs = true;
++      return NULL_TREE;
++    }
++  need_instrument_call_sites = true;
++
++  return NULL_TREE;
++}
++
++#endif  /* defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT */
+ 
+ /* Return the type that we should use to determine if DECL is
+    imported or exported.  */
+@@ -641,4 +695,109 @@ i386_pe_file_end (void)
+     }
+ }
+ 
++#if defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT
++
++static GTY(()) rtx gcc_except_handler_libfunc;
++
++static rtx
++get_sehptr (void)
++{
++  rtx insn, reg, sehptr;
++  sehptr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx), UNSPEC_SEHPTR);
++  reg = gen_reg_rtx (Pmode);
++  insn = gen_rtx_SET (Pmode, reg, sehptr);
++  emit_insn (insn);
++  return reg;
++}
++
++static void
++set_sehptr (rtx mem)
++{
++  rtx insn, reg;
++  reg = gen_reg_rtx (Pmode);
++  emit_move_insn (reg, mem);
++  insn = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, reg), UNSPEC_SEHPTR);
++  emit_insn (insn);
++}
++
++void 
++ix86_instrument_call_site (rtx site)
++{
++  rtx before, call, next, symbol, sehptr, seq, registration, registration_addr;
++  tree decl, attrib;
++  int i;
++
++  /* Only instrument call sites with the seh_aware attribute. */
++  gcc_assert (CALL_P(site));
++  call = PATTERN (site);
++  if (GET_CODE (call) == PARALLEL)
++    call = XVECEXP (call, 0, 0);
++  if (GET_CODE (call) == SET)
++    call = SET_SRC (call);
++  if (GET_CODE (call) != CALL)
++    return;
++  symbol = XEXP (XEXP (call, 0), 0);
++  if (GET_CODE (symbol) != SYMBOL_REF)
++    return;
++   decl = SYMBOL_REF_DECL (symbol);
++   if (!decl)
++     return;
++   attrib = TYPE_ATTRIBUTES (TREE_TYPE (decl));
++   if (!lookup_attribute ("seh_aware", attrib))
++    return;
++
++  /* Don't separate a call from it's argument loads.  */
++  before = find_first_parameter_load (site, NULL_RTX);
++  next = NEXT_INSN (site);
++  while (keep_with_call_p (next))
++    next = NEXT_INSN (next);
++  while (NOTE_P (next))
++    next = NEXT_INSN (next);
++
++  /* Create the SEH exception record.
++     See w32-unwind.h for the definition of this structure.  */
++  start_sequence ();
++  registration = assign_stack_local (Pmode, 7 * UNITS_PER_WORD, 0);
++  sehptr = get_sehptr();
++  emit_move_insn (registration, sehptr);
++  assemble_external_libcall (gcc_except_handler_libfunc);
++  emit_move_insn (adjust_address (registration, Pmode, UNITS_PER_WORD),
++    gcc_except_handler_libfunc);
++  emit_move_insn (adjust_address (registration, Pmode, 2 * UNITS_PER_WORD),
++    stack_pointer_rtx);
++  for (i = 3; i <= 6; i++)
++    emit_move_insn (adjust_address (registration, Pmode, i * UNITS_PER_WORD),
++      gen_rtx_REG (Pmode, i));  /* ebx, esi, edi, ebp */
++
++  /* Install SEH handler. */
++  registration_addr = copy_to_mode_reg (Pmode, XEXP (registration,0));
++  set_sehptr (registration_addr);
++  seq = get_insns ();
++  end_sequence ();
++  emit_insn_before (seq, before);
++
++  /* Remove SEH handler. */
++  start_sequence ();
++  set_sehptr (registration);
++  seq = get_insns ();
++  end_sequence ();
++  emit_insn_before (seq, next);
++}
++
++bool 
++ix86_instrument_call_sites_p (void)
++{
++  return need_instrument_call_sites;
++}
++
++/* Initialize the __gcc_except_handler libfunc that is stored in the SEH
++   record. */
++void
++ix86_init_libfuncs (void)
++{
++  gcc_except_handler_libfunc = init_one_libfunc ("__gcc_except_handler");
++}
++
++#endif  /* defined(DWARF2_UNWIND_INFO) && !TARGET_64BIT */
++
+ #include "gt-winnt.h"
+Index: gcc/config/i386/i386-protos.h
+===================================================================
+--- a/gcc/config/i386/i386-protos.h	(revision 146515)
++++ b/gcc/config/i386/i386-protos.h	(working copy)
+@@ -205,6 +205,8 @@ extern unsigned int ix86_local_alignment
+ extern int ix86_constant_alignment (tree, int);
+ extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
+ extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);
++extern tree ix86_handle_foreign_attribute (tree *, tree, tree, int, bool *);
++extern tree ix86_handle_seh_aware_attribute (tree *, tree, tree, int, bool *);
+ extern int x86_field_alignment (tree, int);
+ extern tree ix86_valid_target_attribute_tree (tree);
+ #endif
+@@ -278,3 +280,7 @@ extern int asm_preferred_eh_data_format 
+ #ifdef HAVE_ATTR_cpu
+ extern enum attr_cpu ix86_schedule;
+ #endif
++
++/* In winnt.c */
++void ix86_instrument_call_site (rtx site);
++bool ix86_instrument_call_sites_p (void);
+Index: gcc/config/i386/i386.c
+===================================================================
+--- a/gcc/config/i386/i386.c	(revision 146515)
++++ b/gcc/config/i386/i386.c	(working copy)
+@@ -8814,6 +8814,8 @@ ix86_decompose_address (rtx addr, struct
+ 	          && TARGET_TLS_DIRECT_SEG_REFS
+ 	          && seg == SEG_DEFAULT)
+ 		seg = TARGET_64BIT ? SEG_FS : SEG_GS;
++	      else if (XINT (op, 1) == UNSPEC_TP)
++		seg = SEG_FS;
+ 	      else
+ 		return 0;
+ 	      break;
+Index: gcc/libgcc-std.ver
+===================================================================
+--- a/gcc/libgcc-std.ver	(revision 146515)
++++ b/gcc/libgcc-std.ver	(working copy)
+@@ -1884,4 +1884,7 @@ GCC_4.4.0 {
+   __sync_lock_test_and_set_16
+ 
+   __sync_synchronize
++
++  # SEH exception handler for Windows targets
++  __gcc_except_handler
+ }

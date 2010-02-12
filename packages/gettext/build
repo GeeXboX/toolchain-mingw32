@@ -1,0 +1,20 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+
+cd $BUILD/$1*/$1-runtime
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --enable-static \
+            --disable-shared \
+            --disable-java \
+            --disable-native-java \
+            --with-included-gettext \
+            --disable-dependency-tracking \
+            --disable-libasprintf \
+
+make
+make install

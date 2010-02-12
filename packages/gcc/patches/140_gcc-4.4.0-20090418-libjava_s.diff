@@ -1,0 +1,152 @@
+2009-04-19  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	<libffi>
+	* Makefile.am (LTLDFLAGS): Add -no-undefined.
+	* Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+
+	<libjava>
+	* configure.ac [mingw|cygwin] (extra_ldflags_libjava): Add -lws2_32.
+	* Makefile.am (LIBLINK): Add -no-undefined.
+	(libgcj_tools_la_LIBADD): New.
+	* Makefile.in: Regenerated.
+	* configure: Regenerated.
+	* gcj/Makefile.in: Regenerated.
+	* include/Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+
+	<libjava/libltdl>
+	* ltdl.c (DLL_EXPORT): Rename to LIBLTDL_DLL_EXPORT.
+	* ltdl.h (DLL_EXPORT): Rename to LIBLTDL_DLL_EXPORT.
+
+
+
+Index: libffi/Makefile.am
+===================================================================
+--- a/libffi/Makefile.am	(revision 146010)
++++ b/libffi/Makefile.am	(working copy)
+@@ -156,7 +156,8 @@ nodist_libffi_convenience_la_SOURCES = $
+ 
+ AM_CFLAGS = -Wall -g -fexceptions
+ 
+-LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
++LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
++        -no-undefined
+ 
+ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS)
+ 
+Index: libjava/configure.ac
+===================================================================
+--- a/libjava/configure.ac	(revision 146010)
++++ b/libjava/configure.ac	(working copy)
+@@ -885,6 +885,9 @@ arm*linux*eabi)
+     LIBSTDCXXSPEC=-lstdc++
+     LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
+     ;;
++*-*-mingw*|*-*-cygwin)
++    extra_ldflags_libjava=-lws2_32
++    ;;
+ esac
+ AC_SUBST(extra_ldflags_libjava)
+ AC_SUBST(extra_gij_ldflags)
+Index: libjava/Makefile.am
+===================================================================
+--- a/libjava/Makefile.am	(revision 146010)
++++ b/libjava/Makefile.am	(working copy)
+@@ -134,7 +134,8 @@ GCJLINK = $(LIBTOOL) --tag=GCJ --mode=li
+ GCJ_FOR_ECJX = @GCJ_FOR_ECJX@
+ GCJ_FOR_ECJX_LINK = $(GCJ_FOR_ECJX) -o $@
+ LIBLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXX) -L$(here) $(JC1FLAGS) \
+-          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
++          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) \
++          -no-undefined -o $@
+ CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+ 	$(CXXFLAGS) $(AM_LDFLAGS) $(LTLDFLAGS) -o $@
+ 
+@@ -311,6 +312,7 @@ libgcj_tools_la_LDFLAGS = -rpath $(toole
+  -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+  $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+ libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
++libgcj_tools_la_LIBADD = -L$(here)/.libs libgcj.la
+ libgcj_tools_la_LINK = $(LIBLINK)
+ 
+ ## libjvm.so
+Index: libjava/libltdl/ltdl.c
+===================================================================
+--- a/libjava/libltdl/ltdl.c	(revision 146010)
++++ b/libjava/libltdl/ltdl.c	(working copy)
+@@ -142,7 +142,7 @@ Foundation, Inc., 51 Franklin Street, Fi
+ /* --- WINDOWS SUPPORT --- */
+ 
+ 
+-#ifdef DLL_EXPORT
++#ifdef LIBLTDL_DLL_EXPORT
+ #  define LT_GLOBAL_DATA	__declspec(dllexport)
+ #else
+ #  define LT_GLOBAL_DATA
+Index: libjava/libltdl/ltdl.h
+===================================================================
+--- a/libjava/libltdl/ltdl.h	(revision 146010)
++++ b/libjava/libltdl/ltdl.h	(working copy)
+@@ -128,7 +128,7 @@ LT_BEGIN_C_DECLS
+    ridiculous implementation of data symbol exporting. */
+ #ifndef LT_SCOPE
+ #  ifdef __WINDOWS__
+-#    ifdef DLL_EXPORT		/* defined by libtool (if required) */
++#    ifdef LIBLTDL_DLL_EXPORT		/* defined by libtool (if required) */
+ #      define LT_SCOPE	__declspec(dllexport)
+ #    endif
+ #    ifdef LIBLTDL_DLL_IMPORT	/* define if linking with this dll */
+Index: libjava/Makefile.in
+===================================================================
+--- a/libjava/Makefile.in	(revision 146515)
++++ b/libjava/Makefile.in	(working copy)
+@@ -40,6 +40,7 @@ POST_UNINSTALL = :
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
++LIBOBJDIR =
+ @TESTSUBDIR_TRUE@am__append_1 = testsuite
+ @USE_LIBGCJ_BC_TRUE@am__append_2 = libgcj_bc.la
+ @XLIB_AWT_TRUE@am__append_3 = lib-gnu-awt-xlib.la
+@@ -158,7 +159,6 @@ am__objects_1 = gnu/gcj/xlib/lib_gnu_awt
+ am_lib_gnu_awt_xlib_la_OBJECTS = $(am__objects_1)
+ lib_gnu_awt_xlib_la_OBJECTS = $(am_lib_gnu_awt_xlib_la_OBJECTS)
+ @XLIB_AWT_TRUE@am_lib_gnu_awt_xlib_la_rpath = -rpath $(toolexeclibdir)
+-libgcj_tools_la_LIBADD =
+ am_libgcj_tools_la_OBJECTS = classpath/tools/libgcj_tools_la-tools.lo
+ libgcj_tools_la_OBJECTS = $(am_libgcj_tools_la_OBJECTS)
+ @INTERPRETER_TRUE@am__DEPENDENCIES_1 = gnu/classpath/jdwp.lo \
+@@ -938,7 +938,8 @@ GCJLINK = $(LIBTOOL) --tag=GCJ --mode=li
+ 
+ GCJ_FOR_ECJX_LINK = $(GCJ_FOR_ECJX) -o $@
+ LIBLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXX) -L$(here) $(JC1FLAGS) \
+-          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
++          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) \
++          -no-undefined -o $@
+ 
+ CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+ 	$(CXXFLAGS) $(AM_LDFLAGS) $(LTLDFLAGS) -o $@
+@@ -1035,6 +1036,7 @@ libgcj_tools_la_LDFLAGS = -rpath $(toole
+  $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+ 
+ libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
++libgcj_tools_la_LIBADD = -L$(here)/.libs libgcj.la
+ libgcj_tools_la_LINK = $(LIBLINK)
+ libjvm_la_SOURCES = jni-libjvm.cc
+ libjvm_la_DEPENDENCIES = libgcj.la libgcj.spec
+Index: libjava/configure
+===================================================================
+--- a/libjava/configure	(revision 146010)
++++ b/libjava/configure	(working copy)
+@@ -20663,6 +20663,9 @@ arm*linux*eabi)
+     LIBSTDCXXSPEC=-lstdc++
+     LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
+     ;;
++*-*-mingw*|*-*-cygwin)
++    extra_ldflags_libjava=-lws2_32
++    ;;
+ esac
+ 
+ 

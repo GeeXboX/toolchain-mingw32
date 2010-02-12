@@ -1,0 +1,7 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/unpack mingwrt
+
+cp -pPR $BUILD/mingwrt*/include $MINGW_PREFIX

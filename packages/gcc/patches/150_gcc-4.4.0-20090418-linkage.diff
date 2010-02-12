@@ -1,0 +1,58 @@
+The attached fixes GCC bug
+http://gcc.gnu.org/bugzilla/show_bug.cgi?id=33155
+
+by preventing the addition of DW_AT_MIPS_linkage_name for C functions.
+On MS Windows targets, the external assembler name of __stdcall functions are
+mangled in  C as well as C++ by the addition of an '@n' suffix.
+GDB however does not appear to  handle DW_AT_MIPS_linkage_name for C functions.
+
+Should this be addressed in gdb sources rather than in GCC?
+
+Tested on i686-pc-mingw32 with GNU gdb 6.5.50.20060706-cvs (cygwin-special) .
+
+2008-04-27  Danny Smith  <dannysmith@users.sourforge.net>
+
+	PR debug/33155
+        * dwarf2out.c (is c): New function.
+        (add_name_and_src_coords_attributes): Don't add
+         DW_AT_MIPS_linkage_name if is_c ().
+
+Index: gcc/dwarf2out.c
+===================================================================
+--- a/gcc/dwarf2out.c	(revision 146010)
++++ b/gcc/dwarf2out.c	(working copy)
+@@ -5005,6 +5005,7 @@ static int get_AT_flag (dw_die_ref, enum
+ static unsigned get_AT_unsigned (dw_die_ref, enum dwarf_attribute);
+ static inline dw_die_ref get_AT_ref (dw_die_ref, enum dwarf_attribute);
+ static bool is_c_family (void);
++static bool is_c (void);
+ static bool is_cxx (void);
+ static bool is_java (void);
+ static bool is_fortran (void);
+@@ -6338,6 +6339,17 @@ is_c_family (void)
+ 	  || lang == DW_LANG_C_plus_plus || lang == DW_LANG_ObjC_plus_plus);
+ }
+ 
++/* Return TRUE if the language is C.  */
++
++static inline bool
++is_c (void)
++{
++  unsigned int lang = get_AT_unsigned (comp_unit_die, DW_AT_language);
++
++  return (lang == DW_LANG_C || lang == DW_LANG_C89
++	  || lang == DW_LANG_C99 || lang == DW_LANG_ObjC);
++}
++
+ /* Return TRUE if the language is C++.  */
+ 
+ static inline bool
+@@ -12570,7 +12582,7 @@ add_name_and_src_coords_attributes (dw_d
+ 	  && DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl)
+ 	  && !DECL_ABSTRACT (decl)
+ 	  && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
+-	  && !is_fortran ())
++	  && !is_fortran () && !is_c ())
+ 	add_AT_string (die, DW_AT_MIPS_linkage_name,
+ 		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+     }

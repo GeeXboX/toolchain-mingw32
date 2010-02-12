@@ -1,0 +1,16 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+
+cd $BUILD/$1*
+make -f GNUmakefile GC CROSS=$TARGET_PREFIX
+strip_libs .
+
+mkdir -p $SYSROOT_PREFIX/usr/bin
+mkdir -p $SYSROOT_PREFIX/usr/lib
+mkdir -p $SYSROOT_PREFIX/usr/include
+cp -P *.a $SYSROOT_PREFIX/usr/lib
+cp -P *.dll $SYSROOT_PREFIX/usr/bin
+cp -P pthread.h sched.h semaphore.h $SYSROOT_PREFIX/usr/include

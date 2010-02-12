@@ -1,0 +1,7 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/unpack w32api
+
+cp -pPR $BUILD/w32api*/include $MINGW_PREFIX
