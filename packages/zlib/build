@@ -1,0 +1,19 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+
+cd $BUILD/$1*
+
+export AR="$AR rc"
+
+./configure --prefix=$LIB_PREFIX
+make
+make install
+
+[ "$STATIC_LIBS" = no ] && \
+  $CC -shared -o $LIB_PREFIX/bin/zlib1.dll \
+      -Wl,--out-implib=$LIB_PREFIX/lib/libz.dll.a [!em]*.o
+
+exit 0

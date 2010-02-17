@@ -1,0 +1,8 @@
+#!/bin/sh
+
+. config/options
+
+if [ "$STATIC_LIBS" = no ]; then
+  mkdir -p $INSTALL/bin
+  cp $LIB_PREFIX/bin/zlib*.dll $INSTALL/usr/lib
+fi
