@@ -1,0 +1,12 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install eina
+$SCRIPTS/install jpeg
+$SCRIPTS/install zlib
+
+if [ "$STATIC_LIBS" = no ]; then
+  mkdir -p $INSTALL/bin
+  cp $BUILD/$1*/objdir-target/src/lib/.libs/libeet*.dll $INSTALL/bin
+fi
