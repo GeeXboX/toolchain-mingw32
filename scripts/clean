@@ -37,8 +37,7 @@ fi
 
 if [ -z "$1" ]; then
   for i in $PACKAGES/*; do clean ${i#$PACKAGES/}; done
-  rm -rf $BUILD/iso
-  rm -rf $BUILD/rootfs
+  rm -rf $BUILD/gen
   [ "$FULL" = true ] && rm -rf $CCACHE_DIR
 else
   clean $1
