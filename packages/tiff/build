@@ -1,0 +1,25 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build jpeg
+$SCRIPTS/build zlib
+
+cd $BUILD/$1*
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --disable-largefile \
+            --disable-mdi \
+            --disable-cxx \
+            --with-jpeg-lib-dir=$LIB_PREFIX/lib \
+            --with-jpeg-include-dir=$LIB_PREFIX/include \
+            --with-zlib-lib-dir=$LIB_PREFIX/lib \
+            --with-zlib-include-dir=$LIB_PREFIX/include \
+            --without-x
+make
+[ "$STATIC_LIBS" = no ] && strip_libs libtiff
+make install
