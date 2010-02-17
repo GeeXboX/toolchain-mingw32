@@ -1,0 +1,20 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build zlib
+
+cd $BUILD/$1*
+export CPPFLAGS="$CPPFLAGS -I$LIB_PREFIX/include"
+export CFLAGS="$CFLAGS -I$LIB_PREFIX/include"
+export LDFLAGS="$LDFLAGS -L$LIB_PREFIX/lib"
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs .
+make install
