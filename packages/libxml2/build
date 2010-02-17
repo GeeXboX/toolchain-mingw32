@@ -13,10 +13,13 @@ cd $BUILD/$1*
             --disable-shared \
             --enable-static \
             --without-python \
-            --with-zlib \
+            --with-zlib=$LIB_PREFIX \
+
+ZLIB=""
+[ "$STATIC_LIBS" = yes ] && ZLIB="-lz"
 
 # Only for static linking
-sed -i 's,\(Libs:.*\),\1 -lwsock32,' libxml-2.0.pc
+sed -i "s,\(Libs:.*\),\1 ${ZLIB} -lwsock32," libxml-2.0.pc
 
 make
 make install
