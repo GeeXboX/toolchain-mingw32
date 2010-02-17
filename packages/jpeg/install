@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. config/options
+
+mkdir -p $INSTALL/bin
+cp $BUILD/$1*/*.exe $INSTALL/bin
+
+if [ "$STATIC_LIBS" = no ]; then
+  cp -P $BUILD/$1*/*.dll $INSTALL/bin
+fi
