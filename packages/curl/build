@@ -3,6 +3,7 @@
 . config/options
 
 $SCRIPTS/build toolchain
+$SCRIPTS/build zlib
 
 cd $BUILD/$1*
 ./configure --host=$TARGET_NAME \
@@ -20,10 +21,14 @@ cd $BUILD/$1*
             --enable-thread \
             --without-gnutls \
             --without-ssl \
+            --with-zlib=$LIB_PREFIX \
+
+ZLIB=""
+[ "$STATIC_LIBS" = yes ] && ZLIB="-lz"
 
 # Only for static linking
 sed -i 's,\(Cflags:.*\),\1 -DPTW32_STATIC_LIB -DCURL_STATICLIB,' libcurl.pc
-sed -i 's,\(Libs:.*\),\1 -lwsock32,' libcurl.pc
+sed -i "s,\(Libs:.*\),\1 ${ZLIB} -lwsock32," libcurl.pc
 
 make
 make install
