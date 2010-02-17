@@ -31,4 +31,3 @@ cd objdir-$1
              --enable-long-long \
              --disable-nls
 make
-setup_toolchain target
