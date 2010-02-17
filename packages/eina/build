@@ -1,0 +1,32 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build evil
+
+cd $BUILD/$1*
+mkdir -p objdir-target
+cd objdir-target
+export CFLAGS="$CFLAGS -I$LIB_PREFIX/include"
+../configure --host=$TARGET_NAME \
+             --build=$HOST_NAME \
+             --prefix=$LIB_PREFIX \
+             --${STATIC_OPT}-static \
+             --${SHARED_OPT}-shared \
+             --disable-doc \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs src
+make install
+
+cd ..
+mkdir -p objdir-host
+cd objdir-host
+setup_toolchain host
+../configure --prefix=$ROOT/$TOOLCHAIN \
+             --disable-static \
+             --enable-shared \
+             --disable-doc
+make
+make install
