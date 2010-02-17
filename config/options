@@ -16,7 +16,7 @@ LOCAL_CC=`which gcc`
 LOCAL_CXX=`which g++`
 
 # Support C++ in toolchain
-TOOLCHAIN_CXX=no
+TOOLCHAIN_CXX=yes
 
 # enable debuging (debugging flags and enables gdb)
 DEBUG=no
