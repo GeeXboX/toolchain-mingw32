@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install ecore
+$SCRIPTS/install embryo
+
+if [ "$STATIC_LIBS" = no ]; then
+  mkdir -p $INSTALL/bin
+  cp $BUILD/$1*/src/lib/.libs/libedje*.dll $INSTALL/bin
+fi
