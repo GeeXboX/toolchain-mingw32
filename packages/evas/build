@@ -32,8 +32,6 @@ export LDFLAGS="$LDFLAGS -L$LIB_PREFIX/lib -L$SYSROOT_PREFIX/usr/lib"
             --enable-image-loader-xpm \
             --enable-font-loader-eet \
             --enable-software-gdi \
-            --enable-software-ddraw \
-            --enable-direct3d \
 
 make
 [ "$STATIC_LIBS" = no ] && strip_libs src
