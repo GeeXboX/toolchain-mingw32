@@ -2,13 +2,13 @@
 
 . config/options
 
-$SCRIPTS/build eina
-$SCRIPTS/build eet
-$SCRIPTS/build libpng
-$SCRIPTS/build jpeg
-$SCRIPTS/build tiff
-$SCRIPTS/build libungif
-$SCRIPTS/build freetype
+$SCRIPTS/install eina
+$SCRIPTS/install eet
+$SCRIPTS/install libpng
+$SCRIPTS/install jpeg
+$SCRIPTS/install tiff
+$SCRIPTS/install libungif
+$SCRIPTS/install freetype
 
 if [ "$STATIC_LIBS" = no ]; then
   echo "evas installation with shared libs is not implemented yet"
