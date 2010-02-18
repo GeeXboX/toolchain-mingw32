@@ -1,0 +1,19 @@
+diff -Naur evas-r46168/src/modules/loaders/jpeg/evas_image_load_jpeg.c evas-r46168a/src/modules/loaders/jpeg/evas_image_load_jpeg.c
+--- evas-r46168/src/modules/loaders/jpeg/evas_image_load_jpeg.c	2010-02-14 15:57:34.000000000 +0100
++++ evas-r46168a/src/modules/loaders/jpeg/evas_image_load_jpeg.c	2010-02-18 09:05:03.754090471 +0100
+@@ -3,13 +3,14 @@
+ #endif
+ 
+ #include <stdio.h>
+-#include <jpeglib.h>
+ #include <setjmp.h>
+ 
+ #ifdef HAVE_EVIL
+ # include <Evil.h>
+ #endif
+ 
++#include <jpeglib.h>
++
+ #include "evas_common.h"
+ #include "evas_private.h"
+ 

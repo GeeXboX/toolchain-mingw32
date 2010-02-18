@@ -1,0 +1,40 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build eina
+$SCRIPTS/build eet
+$SCRIPTS/build libpng
+$SCRIPTS/build jpeg
+$SCRIPTS/build tiff
+$SCRIPTS/build libungif
+$SCRIPTS/build libiconv
+$SCRIPTS/build freetype
+
+cd $BUILD/$1*
+export LIBS="-liconv"
+export CPPFLAGS="$CPPFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export CFLAGS="$CFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export LDFLAGS="$LDFLAGS -L$LIB_PREFIX/lib -L$SYSROOT_PREFIX/usr/lib"
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --disable-doc \
+            --enable-image-loader-eet \
+            --enable-image-loader-gif \
+            --enable-image-loader-jpeg \
+            --enable-image-loader-png \
+            --enable-image-loader-tiff \
+            --enable-image-loader-pmaps \
+            --enable-image-loader-xpm \
+            --enable-font-loader-eet \
+            --enable-software-gdi \
+            --enable-software-ddraw \
+            --enable-direct3d \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs src
+make install
