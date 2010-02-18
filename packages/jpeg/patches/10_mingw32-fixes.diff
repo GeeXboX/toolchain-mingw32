@@ -1,0 +1,29 @@
+diff -Naur jpeg-7/jmorecfg.h jpeg-7a/jmorecfg.h
+--- jpeg-7/jmorecfg.h	2009-04-10 11:05:41.000000000 +0200
++++ jpeg-7a/jmorecfg.h	2010-02-18 08:46:52.890063212 +0100
+@@ -11,6 +11,9 @@
+  * optimizations.  Most users will not need to touch this file.
+  */
+ 
++#if defined(__MINGW32__) && defined(_RPCNDR_H) && !defined(HAVE_BOOLEAN)
++#define HAVE_BOOLEAN
++#endif 
+ 
+ /*
+  * Define BITS_IN_JSAMPLE as either
+@@ -158,13 +161,10 @@
+ 
+ /* INT32 must hold at least signed 32-bit values. */
+ 
+-#ifndef XMD_H			/* X11/xmd.h correctly defines INT32 */
+-#ifndef _BASETSD_H_		/* Microsoft defines it in basetsd.h */
+-#ifndef QGLOBAL_H		/* Qt defines it in qglobal.h */
++/* X11/xmd.h and win32api already define INT32 */
++#if !defined(XMD_H) && !defined(_BASETSD_H)
+ typedef long INT32;
+ #endif
+-#endif
+-#endif
+ 
+ /* Datatype used for image dimensions.  The JPEG standard only supports
+  * images up to 64K*64K due to 16-bit fields in SOF markers.  Therefore
