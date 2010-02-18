@@ -1,0 +1,34 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build curl
+$SCRIPTS/build eina
+$SCRIPTS/build eet
+$SCRIPTS/build evas
+
+cd $BUILD/$1*
+export CPPFLAGS="$CPPFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export CFLAGS="$CFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export LDFLAGS="$LDFLAGS -L$LIB_PREFIX/lib -L$SYSROOT_PREFIX/usr/lib"
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --disable-doc \
+            --enable-curl \
+            --disable-openssl \
+            --disable-gnutls \
+            --disable-glib \
+            --enable-poll \
+            --enable-inotify \
+            --enable-ecore-evas-software-gdi \
+            --enable-ecore-evas \
+            --enable-ecore-evas-software-buffer \
+            --with-iconv-link="-liconv" \
+
+make
+[ "$STATIC_LIBS" = no ] && strip_libs src
+make install

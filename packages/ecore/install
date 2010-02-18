@@ -1,0 +1,12 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/install eina
+$SCRIPTS/install eet
+$SCRIPTS/install evas
+
+if [ "$STATIC_LIBS" = no ]; then
+  echo "ecore installation with shared libs is not implemented yet"
+  exit 1
+fi
