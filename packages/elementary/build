@@ -1,0 +1,26 @@
+#!/bin/sh
+
+. config/options
+
+$SCRIPTS/build toolchain
+$SCRIPTS/build eina
+$SCRIPTS/build ecore
+$SCRIPTS/build libiconv
+
+cd $BUILD/$1*
+export CPPFLAGS="$CPPFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export CFLAGS="$CFLAGS -I$LIB_PREFIX/include -I$SYSROOT_PREFIX/usr/include"
+export LDFLAGS="$LDFLAGS -L$LIB_PREFIX/lib -L$SYSROOT_PREFIX/usr/lib -liconv"
+./configure --host=$TARGET_NAME \
+            --build=$HOST_NAME \
+            --prefix=$LIB_PREFIX \
+            --${STATIC_OPT}-static \
+            --${SHARED_OPT}-shared \
+            --disable-doc \
+            --with-edje-cc=/bin/true \
+            --with-eet-eet=$ROOT/$TOOLCHAIN/bin/eet \
+
+make -C src/lib
+[ "$STATIC_LIBS" = no ] && strip_libs src/lib
+make -C src/lib install
+cp elementary.pc $LIB_PREFIX/lib/pkgconfig
